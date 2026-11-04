@@ -166,6 +166,7 @@ internal static partial class Program
         Directory.CreateDirectory(sandbox);
         Process? target = null;
         Process? helper = null;
+        bool testSucceeded = false;
         try
         {
             string targetDirectory = Path.Combine(sandbox, "target '[$]");
@@ -231,6 +232,7 @@ internal static partial class Program
             await invalid.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
             Assert(invalid.ExitCode != 0 && File.Exists(Path.Combine(sandbox, "outside.txt")),
                 "cleanup weigert een gegevenspad buiten de vaste appmap");
+            testSucceeded = true;
         }
         finally
         {
@@ -239,7 +241,17 @@ internal static partial class Program
             if (helper is not null) { await helper.WaitForExitAsync(); helper.Dispose(); }
             if (target is not null) { await target.WaitForExitAsync(); target.Dispose(); }
             // De absolute sandbox is hierboven onder Temp geverifieerd; geen appgegevens buiten deze map.
-            Directory.Delete(sandbox, recursive: true);
+            try
+            {
+                foreach (string file in Directory.EnumerateFiles(sandbox, "*", SearchOption.AllDirectories))
+                    File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+                Directory.Delete(sandbox, recursive: true);
+            }
+            catch (Exception ex) when (!testSucceeded && ex is IOException or UnauthorizedAccessException)
+            {
+                // Preserve the original test failure when Windows still holds a sandbox image handle.
+                Console.Error.WriteLine("Sandbox cleanup delayed: " + ex.GetType().Name);
+            }
         }
     }
 

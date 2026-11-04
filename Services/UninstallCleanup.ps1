@@ -112,6 +112,9 @@ try {
     [void] $successSignal.Set()
     exit 0
 } catch {
+    if (-not $cleanupCommitted) {
+        [Console]::Error.WriteLine('Cleanup preflight failed: ' + $_.Exception.Message)
+    }
     # Na afsluiten kan de app zelf geen foutmelding meer tonen.
     if ($cleanupCommitted) {
         $failureLog = [IO.Path]::Combine([IO.Path]::GetTempPath(), 'WorkflowTracker-uninstall-error.log')
