@@ -206,9 +206,15 @@ internal static partial class Program
             start.Environment["TMP"] = sandbox;
             start.RedirectStandardError = true;
             helper = Process.Start(start)!;
+            // WinPS emits first-use module progress on stderr; drain it while waiting for Ready.
+            Task<string> helperErrors = helper.StandardError.ReadToEndAsync();
             if (!await Task.Run(() => helperReady.WaitOne(TimeSpan.FromSeconds(60))))
+            {
+                if (!helper.HasExited) helper.Kill();
+                await helper.WaitForExitAsync();
                 throw new InvalidOperationException("Cleanup niet voorbereid: " +
-                    (helper.HasExited ? await helper.StandardError.ReadToEndAsync() : "helper bleef wachten"));
+                    await helperErrors);
+            }
             Assert(File.Exists(targetExe) && File.Exists(Path.Combine(dataRoot, "settings.dat")),
                 "helper verwijdert niets vóór toestemming en procesafsluiting");
             proceed.Set();
