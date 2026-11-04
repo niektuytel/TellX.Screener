@@ -3,6 +3,7 @@
 ## 1.3.2
 
 - Add GitHub Actions builds with direct ZIP artifacts, download summaries and version-tag releases.
+- Fix Windows PowerShell cleanup when launched from PowerShell 7 and retain useful sandbox-test diagnostics.
 - Publication cleanup: remove duplicated validation and centralize worker schedule evaluation.
 - Add clean source packaging, SHA-256 checksums, repository ignore rules and repeatable verification.
 - Keep manual Play after hours, automatic scheduling, activity filtering and webhook contracts unchanged.

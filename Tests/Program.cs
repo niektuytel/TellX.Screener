@@ -199,6 +199,8 @@ internal static partial class Program
                 targetExe, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(targetExe))), dataRoot,
                 prefix + ".Ready", prefix + ".Proceed", prefix + ".Success");
             var start = UninstallCoordinator.BuildHelperStartInfo(plan);
+            Assert(!start.Environment.ContainsKey("PSModulePath"),
+                "Windows PowerShell-helper gebruikt zijn eigen modulepad bij starten vanuit PowerShell 7");
             start.Environment["LOCALAPPDATA"] = sandbox;
             start.Environment["TEMP"] = sandbox;
             start.Environment["TMP"] = sandbox;

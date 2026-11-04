@@ -57,6 +57,9 @@ public sealed class UninstallCoordinator
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = Path.GetTempPath()
         };
+        // Rebuild Windows PowerShell 5.1's own module path when the app was launched from pwsh 7.
+        // Inheriting pwsh's PSModulePath can hide built-ins such as Get-FileHash.
+        start.Environment.Remove("PSModulePath");
         foreach (string argument in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", reader.ReadToEnd() })
             start.ArgumentList.Add(argument);
         // Uitsluitend data in de environment; paden worden nooit in scriptcode geïnterpoleerd.
