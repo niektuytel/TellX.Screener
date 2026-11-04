@@ -84,7 +84,7 @@ The first command builds all three self-contained single-file architectures sequ
 
 The second command creates source only from `scripts/source-files.txt`. Keep dotfiles and the repo-local skill in that allowlist; update it when adding root files/directories. Exclude bin/obj/publish, runtime settings, credentials, keys and logs. Validate that an extracted source archive builds/tests, not just that ZIP creation succeeds. Source-only packaging does not refresh full-release checksums; run full publish last before delivery. Do not zip the whole workspace or silently assign a license, configure a GitHub repository or upload assets during local preparation.
 
-When launching the fixed Windows PowerShell 5.1 cleanup helper from a PowerShell 7 parent (including CI), remove PSModulePath from the child environment so built-in modules such as Get-FileHash resolve correctly. Keep preflight diagnostics on stderr. Sandbox cleanup must not mask the original test failure; clear copied read-only file attributes only inside the prevalidated temporary sandbox.
+When launching the fixed Windows PowerShell 5.1 cleanup helper from a PowerShell 7 parent (including CI), set the child PSModulePath to that selected host's built-in Modules directory so commands such as Get-FileHash resolve correctly. Keep preflight diagnostics on stderr. Sandbox cleanup must not mask the original test failure; clear copied read-only file attributes only inside the prevalidated temporary sandbox.
 
 ## GitHub build artifacts and releases
 

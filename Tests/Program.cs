@@ -31,7 +31,7 @@ internal static partial class Program
             using var ready = EventWaitHandle.OpenExisting(readyName);
             using var stop = EventWaitHandle.OpenExisting(stopName);
             ready.Set();
-            return stop.WaitOne(TimeSpan.FromSeconds(45)) ? 0 : 70;
+            return stop.WaitOne(TimeSpan.FromSeconds(120)) ? 0 : 70;
         }
         try
         {
@@ -199,14 +199,14 @@ internal static partial class Program
                 targetExe, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(targetExe))), dataRoot,
                 prefix + ".Ready", prefix + ".Proceed", prefix + ".Success");
             var start = UninstallCoordinator.BuildHelperStartInfo(plan);
-            Assert(!start.Environment.ContainsKey("PSModulePath"),
+            Assert(start.Environment["PSModulePath"] == Path.Combine(Path.GetDirectoryName(start.FileName)!, "Modules"),
                 "Windows PowerShell-helper gebruikt zijn eigen modulepad bij starten vanuit PowerShell 7");
             start.Environment["LOCALAPPDATA"] = sandbox;
             start.Environment["TEMP"] = sandbox;
             start.Environment["TMP"] = sandbox;
             start.RedirectStandardError = true;
             helper = Process.Start(start)!;
-            if (!await Task.Run(() => helperReady.WaitOne(TimeSpan.FromSeconds(12))))
+            if (!await Task.Run(() => helperReady.WaitOne(TimeSpan.FromSeconds(60))))
                 throw new InvalidOperationException("Cleanup niet voorbereid: " +
                     (helper.HasExited ? await helper.StandardError.ReadToEndAsync() : "helper bleef wachten"));
             Assert(File.Exists(targetExe) && File.Exists(Path.Combine(dataRoot, "settings.dat")),

@@ -33,7 +33,7 @@ public sealed class UninstallCoordinator
 
         using var helper = Process.Start(BuildHelperStartInfo(plan))
             ?? throw new InvalidOperationException("Opruimproces kon niet worden gestart.");
-        bool started = await Task.Run(() => ready.WaitOne(TimeSpan.FromSeconds(15))).ConfigureAwait(false);
+        bool started = await Task.Run(() => ready.WaitOne(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
         if (!started || helper.HasExited)
             throw new InvalidOperationException("Opruimproces kon niet worden voorbereid.");
 
@@ -57,9 +57,8 @@ public sealed class UninstallCoordinator
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = Path.GetTempPath()
         };
-        // Rebuild Windows PowerShell 5.1's own module path when the app was launched from pwsh 7.
-        // Inheriting pwsh's PSModulePath can hide built-ins such as Get-FileHash.
-        start.Environment.Remove("PSModulePath");
+        // Only load the selected Windows PowerShell host's built-in modules, even from a pwsh 7 parent.
+        start.Environment["PSModulePath"] = Path.Combine(Path.GetDirectoryName(start.FileName)!, "Modules");
         foreach (string argument in new[] { "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", reader.ReadToEnd() })
             start.ArgumentList.Add(argument);
         // Uitsluitend data in de environment; paden worden nooit in scriptcode geïnterpoleerd.
