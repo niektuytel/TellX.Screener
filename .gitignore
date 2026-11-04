@@ -1,0 +1,21 @@
+# Generated outputs (the repository-local .agents skill is intentionally included).
+**/bin/
+**/obj/
+/publish/
+.vs/
+.idea/
+TestResults/
+*.user
+*.suo
+*.log
+
+# Local credentials, signing keys and runtime state.
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+settings.dat
+settings.dat.tmp
+workflowtracker.local.json

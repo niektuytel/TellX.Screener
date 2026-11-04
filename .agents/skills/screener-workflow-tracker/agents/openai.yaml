@@ -1,0 +1,4 @@
+interface:
+  display_name: "Screener Workflow Tracker"
+  short_description: "Maintain and publish the Screener desktop app"
+  default_prompt: "Use $screener-workflow-tracker to update, verify, and publish the Screener WPF app while preserving its capture and webhook contracts."

@@ -1,0 +1,80 @@
+<Window x:Class="WorkflowTracker.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Workflow Tracker — instellingen" Width="500" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True"
+        Background="#F5F7FA" ShowInTaskbar="False" Loaded="Window_Loaded">
+  <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24">
+      <TextBlock Text="Workflow Tracker" FontSize="23" FontWeight="SemiBold" />
+      <TextBlock Text="Google leest je scherm. De webhook ontvangt tekst."
+                 TextWrapping="Wrap" Foreground="#465266" Margin="0,8,0,20" />
+      <TextBlock Text="Google Gemini API-key" />
+      <PasswordBox x:Name="ApiKeyBox" Margin="0,4,0,14" Padding="6" />
+      <TextBlock Text="Webhook-URL" />
+      <TextBox x:Name="WebhookBox" Margin="0,4,0,18" Padding="6" />
+      <Expander x:Name="CaptureSettingsExpander" Header="Geavanceerd" IsExpanded="False"
+                HorizontalContentAlignment="Stretch" Margin="0,0,0,16">
+        <StackPanel Margin="0,12,0,0">
+          <CheckBox x:Name="SendScreenshotsBox" Content="Screenshots meesturen naar webhook"
+                    Margin="0,0,0,8"
+                    ToolTip="Alleen de huidige PNG meesturen. De AI ontvangt altijd de huidige screenshot." />
+          <TextBlock Text="AI-context: vorige analyseresultaten en het doorlopende rapport."
+                     Foreground="#465266" TextWrapping="Wrap" Margin="0,0,0,14" />
+          <CheckBox x:Name="ScheduleEnabledBox" Content="Dagelijks opnamevenster (lokale Windows-tijd)" Margin="0,0,0,8" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Start (HH:mm)" />
+              <TextBox x:Name="RecordingStartBox" Margin="0,4,0,12" Padding="6" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Pauze (HH:mm)" />
+              <TextBox x:Name="RecordingEndBox" Margin="0,4,0,12" Padding="6" />
+            </StackPanel>
+          </Grid>
+          <CheckBox x:Name="SkipWhenIdleBox" Content="Opname overslaan zonder nieuwe muis- of toetsactiviteit"
+                    Margin="0,0,0,14" ToolTip="Controleert alleen het laatste invoertijdstip. De eerste opname en retries na een AI-fout blijven mogelijk." />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Opname-interval (seconden)" />
+              <TextBox x:Name="IntervalBox" Margin="0,4,0,12" Padding="6" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="HTTP-timeout (seconden)" />
+              <TextBox x:Name="TimeoutBox" Margin="0,4,0,12" Padding="6" />
+            </StackPanel>
+          </Grid>
+          <Button Content="Standaardopname herstellen" Click="ResetCaptureDefaults_Click"
+                  HorizontalAlignment="Left" Padding="10,6" Margin="0,0,0,16" />
+          <TextBlock Text="Analyseprompt" />
+          <TextBox x:Name="AnalysisPromptBox" Height="132" Margin="0,4,0,12" Padding="6"
+                   AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+          <TextBlock Text="Contextprefix voor de vorige opnamen" />
+          <TextBox x:Name="ContextPrefixBox" Height="68" Margin="0,4,0,8" Padding="6"
+                   AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+          <TextBlock Text="Het prefix leidt de vorige resultaten in. Elke volgende opname bouwt het rapport verder op."
+                     TextWrapping="Wrap" Foreground="#465266" Margin="0,0,0,8" />
+          <Button Content="Standaardprompts herstellen" Click="ResetPrompts_Click"
+                  HorizontalAlignment="Left" Padding="10,6" Margin="0,0,0,16" />
+          <TextBlock Text="Vision-model" />
+          <TextBox x:Name="ModelBox" Margin="0,4,0,12" Padding="6" />
+          <TextBlock Text="Vision-endpoint" />
+          <TextBox x:Name="EndpointBox" Margin="0,4,0,12" Padding="6" />
+          <TextBlock Text="Webhook Bearer-token (optioneel)" />
+          <PasswordBox x:Name="WebhookTokenBox" Margin="0,4,0,0" Padding="6" />
+        </StackPanel>
+      </Expander>
+      <TextBlock x:Name="ErrorText" Foreground="#AF2020" TextWrapping="Wrap" Margin="0,0,0,10" />
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Annuleren" IsCancel="True" Padding="16,8" Margin="0,0,8,0" />
+        <Button Content="Opslaan" IsDefault="True" Click="Save_Click" Padding="16,8" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

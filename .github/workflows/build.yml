@@ -1,0 +1,189 @@
+name: Build Windows downloads
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: Test and build Windows packages
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check release version
+        id: version
+        run: |
+          $project = [xml](Get-Content ./WorkflowTracker.csproj -Raw)
+          $version = [string]$project.Project.PropertyGroup.Version
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw 'Set a valid Version in WorkflowTracker.csproj.'
+          }
+          if ($env:GITHUB_REF.StartsWith('refs/tags/') -and $env:GITHUB_REF -cne "refs/tags/v$version") {
+            throw "The release tag must match the project version: v$version"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build and test x64
+        run: ./scripts/verify.ps1
+
+      - name: Test self-contained x86
+        run: |
+          dotnet publish ./Tests/WorkflowTracker.Tests.csproj -c Release -r win-x86 --self-contained true -o ./obj/smoke-x86 --nologo
+          if ($LASTEXITCODE -ne 0) { throw 'x86 test build failed.' }
+          & ./obj/smoke-x86/WorkflowTracker.Tests.exe
+          if ($LASTEXITCODE -ne 0) { throw 'x86 tests failed.' }
+
+      - name: Publish all architectures and source
+        run: ./scripts/publish.ps1
+
+      - name: Verify packages
+        run: ./scripts/verify-packages.ps1
+
+      # Upload existing ZIPs directly, avoiding an extra ZIP around each download.
+      - name: Upload Windows x64 download
+        id: x64
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: publish/packages/WorkflowTracker-win-x64.zip
+          archive: false
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload Windows x86 download
+        id: x86
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: publish/packages/WorkflowTracker-win-x86.zip
+          archive: false
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload Windows ARM64 download
+        id: arm64
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: publish/packages/WorkflowTracker-win-arm64.zip
+          archive: false
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload source and skill
+        id: source
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: publish/packages/WorkflowTracker-source.zip
+          archive: false
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload checksums
+        id: checksums
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: publish/packages/SHA256SUMS.txt
+          archive: false
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Show download links
+        env:
+          X64_URL: ${{ steps.x64.outputs.artifact-url }}
+          X86_URL: ${{ steps.x86.outputs.artifact-url }}
+          ARM64_URL: ${{ steps.arm64.outputs.artifact-url }}
+          SOURCE_URL: ${{ steps.source.outputs.artifact-url }}
+          SUMS_URL: ${{ steps.checksums.outputs.artifact-url }}
+        run: |
+          @(
+            '# Windows downloads'
+            ''
+            "- [Windows x64 - recommended for most PCs]($env:X64_URL)"
+            "- [Windows x86 - 32-bit PCs]($env:X86_URL)"
+            "- [Windows ARM64]($env:ARM64_URL)"
+            "- [Source including Screener skill]($env:SOURCE_URL)"
+            "- [SHA-256 checksums]($env:SUMS_URL)"
+            ''
+            'Download the matching ZIP, extract it, then double-click WorkflowTracker.exe.'
+            'No separate .NET installation is required. Builds are unsigned.'
+            'Actions artifacts require GitHub sign-in and expire after 30 days.'
+            "For public release downloads, see https://github.com/$env:GITHUB_REPOSITORY/releases/latest"
+          ) | Set-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+  release:
+    name: Publish version-tag release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: release
+          merge-multiple: true
+          skip-decompress: true
+
+      - name: Verify downloaded checksums
+        working-directory: release
+        run: sha256sum --check SHA256SUMS.txt
+
+      - name: Create downloadable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if existing_draft=$(gh release view "$TAG" --repo "$GH_REPO" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$existing_draft" == "false" ]]; then
+              echo "Release $TAG is already published; existing assets are preserved."
+              exit 0
+            fi
+          else
+            cat > release-notes.md <<EOF
+          Download the ZIP for your PC, extract it and double-click WorkflowTracker.exe.
+
+          - [Windows x64 - most PCs](https://github.com/$GH_REPO/releases/download/$TAG/WorkflowTracker-win-x64.zip)
+          - [Windows x86 - 32-bit PCs](https://github.com/$GH_REPO/releases/download/$TAG/WorkflowTracker-win-x86.zip)
+          - [Windows ARM64](https://github.com/$GH_REPO/releases/download/$TAG/WorkflowTracker-win-arm64.zip)
+
+          The .NET runtime is included. Enter your own Gemini API key on first use.
+          Source, the Screener skill and SHA-256 checksums are attached. Builds are unsigned.
+          EOF
+            options=()
+            if [[ "$TAG" == *-* ]]; then options+=(--prerelease); fi
+            gh release create "$TAG" --repo "$GH_REPO" --verify-tag --draft --title "Workflow Tracker $TAG" --notes-file release-notes.md "${options[@]}"
+          fi
+          gh release upload "$TAG" release/*.zip release/SHA256SUMS.txt --repo "$GH_REPO" --clobber
+          gh release edit "$TAG" --repo "$GH_REPO" --draft=false

@@ -1,0 +1,16 @@
+{
+  "VisionEndpoint": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  "VisionApiKey": "",
+  "VisionModel": "gemini-3.1-flash-lite",
+  "WebhookUrl": "https://tellx.nl/tuytelmachinery-assistent/screener",
+  "WebhookBearerToken": "",
+  "CaptureIntervalSeconds": 20,
+  "RequestTimeoutSeconds": 90,
+  "SendScreenshots": false,
+  "DailyScheduleEnabled": true,
+  "RecordingStartTime": "06:00",
+  "RecordingEndTime": "18:00",
+  "SkipWhenIdle": true,
+  "AnalysisPrompt": "Lees de zichtbare tekst op deze screenshot. Beschrijf wat de gebruiker nu doet en waarschijnlijk probeert te bereiken. Deze screenshot is een volgend moment in dezelfde opnamesessie. Gebruik de volledige analyseresultaten van de twee vorige opnamen en hun rapport als context. Vergelijk met het vorige resultaat en bouw het veld rapport verder uit tot een samenhangend verslag: behoud relevante eerdere bevindingen, voeg nieuwe handelingen en veranderingen toe en benoem een eventuele taakwissel. Leg alleen verbanden waarvoor aanwijzingen zijn. Rapporteer ook lopend werk; verzin geen onzichtbare stappen of zekere bedoelingen. Retourneer JSON met screenshot_tekst, activiteit, doel, applicaties, stappenplan, voltooid en rapport.",
+  "PreviousContextPrefix": "Vorige analyseresultaten (oud naar nieuw). De huidige screenshot volgt hierop; gebruik deze resultaten en hun doorlopende rapport als samenhangende context:"
+}
