@@ -6,7 +6,7 @@ Een Windows-app met een zwevende Play/Pauze-knop. Google Gemini leest de huidige
 
 Open [Actions > Build Windows downloads](https://github.com/niektuytel/TellX.Screener/actions/workflows/build.yml), kies een geslaagde run en download onder **Artifacts** de `WorkflowTracker-win-x64.zip` voor een gewone 64-bits pc. Pak de ZIP uit en dubbelklik op `WorkflowTracker.exe`. Ook x86, ARM64, broncode inclusief skill en checksums zijn beschikbaar. GitHub-aanmelding is vereist voor Actions-downloads; ze blijven 30 dagen beschikbaar.
 
-Na een geslaagde versie-tagbuild verschijnen de pakketten ook onder [Releases](https://github.com/niektuytel/TellX.Screener/releases). De [laatste stabiele x64-download](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x64.zip) werkt zodra de eerste stabiele release is gepubliceerd. Zie [PUBLISHING.md](PUBLISHING.md) voor de build- en tagprocedure. De builds zijn nog niet digitaal ondertekend.
+Iedere push naar `main` krijgt automatisch een hogere appversie en publiceert na geslaagde tests een nieuwe [Release](https://github.com/niektuytel/TellX.Screener/releases). Download zonder GitHub-aanmelding de [laatste stabiele x64-ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x64.zip). De releasetitel blijft `Workflow Tracker`; ZIPs en `WorkflowTracker.exe` hebben geen versienummer in hun naam. Een push met meerdere commits publiceert de laatste commit van die push. Zie [PUBLISHING.md](PUBLISHING.md) voor de automatische versie- en releaseprocedure. De builds zijn nog niet digitaal ondertekend.
 
 ## Starten en instellen
 

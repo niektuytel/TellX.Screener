@@ -25,7 +25,7 @@ Read applicable `AGENTS.md`, [README](../../../README.md) and the relevant imple
 
 ## Defaults and ownership
 
-Current release: **1.3.2**, one canonical `publish/WorkflowTracker.exe`.
+Base source version: **1.3.2**; CI stamps increasing release versions. One canonical `publish/WorkflowTracker.exe`.
 
 | Setting | Default |
 | --- | --- |
@@ -92,7 +92,7 @@ The repository is `niektuytel/TellX.Screener`. `.github/workflows/build.yml` run
 
 Official actions are pinned to commit SHAs. upload-artifact v7 uses archive=false for each existing ZIP/checksum file; do not wrap downloads in another ZIP or upload the whole workspace. The source manifest must include `.github/workflows/*.yml` and the repo-local skill. Uploads fail if files are missing, replace same-run artifacts on reruns and retain them 30 days. The job summary contains explicit platform download links. Actions downloads require sign-in/read access; public downloads come from Releases.
 
-Only a push of a version tag matching WorkflowTracker.csproj Version (for example v1.3.2) enables the separate contents-write release job. Other jobs have contents-read permission and no persisted checkout credentials; do not use pull_request_target. download-artifact v8 must use skip-decompress=true to preserve the uploaded ZIPs. SHA256SUMS.txt uses LF so Linux sha256sum --check works. New releases are drafts until assets finish uploading; an interrupted draft can resume, and published release assets stay untouched on rerun. Prerelease version tags get prerelease status. Latest stable release links become available only after the first stable tagged release succeeds. This workflow does not sign binaries or add an app updater.
+Every push to main enables the separate contents-write release job after verification. CI adds github.run_number to the base patch version, stamps its checkout before testing/packaging, and publishes the exact pushed commit as a stable build-N release. Each push releases its final commit. Main runs do not cancel one another. Only a build still at main head explicitly promotes latest, preventing a slower old build from replacing it. Keep the base version stable between automatic releases; increase major/minor for a new series. Manual v* tags must still match the checked-in project version. Release title stays Workflow Tracker; ZIP and exe filenames remain unversioned. Other jobs have contents-read permission and no persisted checkout credentials; do not use pull_request_target. download-artifact v8 must use skip-decompress=true to preserve the uploaded ZIPs. SHA256SUMS.txt uses LF so Linux sha256sum --check works. New releases are drafts until assets finish uploading; an interrupted draft can resume, and published release assets stay untouched on rerun. Prerelease version tags get prerelease status. Latest stable release links become available after the first successful automatic main release or stable tagged release. This workflow does not sign binaries or add an app updater.
 
 Lint the YAML and validate action inputs against the pinned versions before publishing workflow edits. Run the underlying scripts locally where possible, then distinguish local validation from a successful GitHub-hosted run. Source preparation alone does not imply a remote upload; an explicit GitHub deployment request with a specified repository authorizes applying the prepared source/workflow there. Do not create version tags or public releases merely to test routine artifact changes unless the requested publishing scope includes them.
 

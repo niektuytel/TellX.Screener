@@ -49,7 +49,26 @@ After a successful run, open **Actions > Build Windows downloads > the run > Art
 
 Extract the ZIP and double-click `WorkflowTracker.exe`. There is no separate runtime installation. This does not install automatic app updates.
 
-## Version-tag releases and public downloads
+## Automatic releases and public downloads
+
+Every push to `main` automatically publishes a new stable GitHub Release after the Windows tests, builds, package verification and downloaded checksum verification pass. A push containing several commits releases the final commit of that push. Pull requests, other branches and manual workflow dispatches produce Actions artifacts only.
+
+The app version uses the project's major/minor and adds `github.run_number` to its base patch: base `1.3.2` with run 6 becomes `1.3.8`, then run 7 becomes `1.3.9`. The CI checkout is stamped before testing/packaging, so binaries and the source ZIP agree. No version-bump commit or manual tag is needed. Reruns keep the same version and `build-N` tag. Keep the base version stable between automatic releases; increase major/minor when starting a new version series.
+
+The release job creates its `build-N` tag at the exact source commit. The release title is always `Workflow Tracker`; asset names and the contained `WorkflowTracker.exe` have no version in their names. App version and source commit appear in release notes. Main pushes do not cancel one another. A slower old build can publish its own release, but only a build still at the head of `main` explicitly updates the latest download.
+
+New releases start as drafts, attach all verified assets, then become public. Reruns resume interrupted drafts and preserve already-published assets. Only the release job has contents-write permission; the built-in `GITHUB_TOKEN` is sufficient. Actions must be enabled; no PAT or real Vision credentials are required. Tags created by this token do not start another workflow run.
+
+Public downloads retain the same URLs across releases:
+
+- [Latest release](https://github.com/niektuytel/TellX.Screener/releases/latest)
+- [Latest Windows x64 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x64.zip)
+- [Latest Windows x86 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x86.zip)
+- [Latest Windows ARM64 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-arm64.zip)
+
+Releases remain available independently of the 30-day Actions artifact retention. This does not add automatic updates inside the installed app.
+
+### Optional manual version tags
 
 Push a tag matching the Version in `WorkflowTracker.csproj`, for example:
 
@@ -58,18 +77,7 @@ git tag v1.3.2
 git push origin v1.3.2
 ```
 
-After the Windows tests, build and package verification pass, a separate release job downloads the exact same artifacts, checks their hashes and publishes a GitHub Release. Its token has contents-write permission only in that job; pull requests and ordinary branch/manual builds do not publish releases. Actions must be enabled in the repository. The built-in `GITHUB_TOKEN` is sufficient; do not create a PAT or add API keys to this workflow.
-
-The version tag must match the project version exactly, otherwise the build fails. Prerelease tags are marked as prereleases. New releases start as drafts, attach all assets, then become published. A rerun can finish an interrupted draft; it preserves an already-published release. Branch-build artifacts remain available independently.
-
-Public download locations after the first stable tagged release succeeds:
-
-- [Latest release](https://github.com/niektuytel/TellX.Screener/releases/latest)
-- [Latest Windows x64 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x64.zip)
-- [Latest Windows x86 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-x86.zip)
-- [Latest Windows ARM64 ZIP](https://github.com/niektuytel/TellX.Screener/releases/latest/download/WorkflowTracker-win-arm64.zip)
-
-These release links are for users without GitHub sign-in on this public repository. They do not exist until a stable release has been published. Releases remain available independently of the 30-day Actions artifact retention.
+Manual `v*` tags remain supported and must match the checked-in project version exactly, otherwise the build fails. Prerelease version tags are marked as prereleases. Use a version above the latest automatic app version when publishing a manual stable release.
 
 ## Source checkout
 

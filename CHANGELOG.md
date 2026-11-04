@@ -1,5 +1,12 @@
 # Changelog
 
+## Automatic releases
+
+- Publish a stable GitHub Release automatically for every successful push to main.
+- Stamp an increasing app version into CI binaries and source packages without version-bump commits.
+- Keep release titles, executable names and package filenames free of version numbers; retain fixed latest-download links.
+- Preserve completed releases on reruns and prevent slower old builds from replacing the latest main download.
+
 ## 1.3.2
 
 - Add GitHub Actions builds with direct ZIP artifacts, download summaries and version-tag releases.

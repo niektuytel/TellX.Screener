@@ -11,8 +11,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  # Keep every main push; newer commits must not cancel a release in progress.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.run_id || 'branch' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build:
@@ -24,6 +25,7 @@ jobs:
         shell: pwsh
     outputs:
       version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,7 +37,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Check release version
+      - name: Set release version
         id: version
         run: |
           $project = [xml](Get-Content ./WorkflowTracker.csproj -Raw)
@@ -46,7 +48,23 @@ jobs:
           if ($env:GITHUB_REF.StartsWith('refs/tags/') -and $env:GITHUB_REF -cne "refs/tags/v$version") {
             throw "The release tag must match the project version: v$version"
           }
+          $tag = $env:GITHUB_REF_NAME
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -eq 'refs/heads/main') {
+            if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+              throw 'Automatic releases require a stable major.minor.patch project version.'
+            }
+            $patch = [long]$Matches[3] + [long]$env:GITHUB_RUN_NUMBER
+            if ($patch -gt 65534) { throw 'Increase the minor version and reset the base patch before releasing.' }
+            $version = '{0}.{1}.{2}' -f $Matches[1], $Matches[2], $patch
+            $tag = "build-$env:GITHUB_RUN_NUMBER"
+            # Stamp the build checkout so binaries and the source ZIP share the version.
+            $path = Join-Path $PWD 'WorkflowTracker.csproj'
+            $content = [IO.File]::ReadAllText($path)
+            $content = [regex]::Replace($content, '<Version>[^<]+</Version>', "<Version>$version</Version>")
+            [IO.File]::WriteAllText($path, $content, [Text.UTF8Encoding]::new($false))
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - name: Build and test x64
         run: ./scripts/verify.ps1
@@ -139,9 +157,9 @@ jobs:
           ) | Set-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
   release:
-    name: Publish version-tag release
+    name: Publish GitHub Release
     needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -162,7 +180,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           if existing_draft=$(gh release view "$TAG" --repo "$GH_REPO" --json isDraft --jq .isDraft 2>/dev/null); then
@@ -180,10 +200,19 @@ jobs:
 
           The .NET runtime is included. Enter your own Gemini API key on first use.
           Source, the Screener skill and SHA-256 checksums are attached. Builds are unsigned.
+
+          App version: $VERSION. Source commit: $SOURCE_SHA.
           EOF
             options=()
-            if [[ "$TAG" == *-* ]]; then options+=(--prerelease); fi
-            gh release create "$TAG" --repo "$GH_REPO" --verify-tag --draft --title "Workflow Tracker $TAG" --notes-file release-notes.md "${options[@]}"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then options+=(--verify-tag); fi
+            if [[ "$GITHUB_REF" == refs/tags/* && "$TAG" == *-* ]]; then options+=(--prerelease); fi
+            gh release create "$TAG" --repo "$GH_REPO" --target "$SOURCE_SHA" --draft --title "Workflow Tracker" --notes-file release-notes.md "${options[@]}"
           fi
           gh release upload "$TAG" release/*.zip release/SHA256SUMS.txt --repo "$GH_REPO" --clobber
-          gh release edit "$TAG" --repo "$GH_REPO" --draft=false
+          options=()
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            # An older, slower build may publish, but must not replace the current latest.
+            main_sha=$(gh api "repos/$GH_REPO/commits/main" --jq .sha)
+            if [[ "$main_sha" == "$SOURCE_SHA" ]]; then options+=(--latest); else options+=(--latest=false); fi
+          fi
+          gh release edit "$TAG" --repo "$GH_REPO" --draft=false "${options[@]}"
